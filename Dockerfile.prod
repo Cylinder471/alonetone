@@ -1,0 +1,30 @@
+FROM ruby:3.2.0
+
+# Установка системных зависимостей
+RUN apt-get update -qq && \
+    apt-get install -y \
+    wget \
+    libvips \
+    libvips-dev \
+    rustc \
+    build-essential \
+    curl \
+    && wget https://github.com/bbc/audiowaveform/releases/download/1.8.1/audiowaveform_1.8.1-1.bullseye_amd64.deb \
+    && dpkg -i audiowaveform_1.8.1-1.bullseye_amd64.deb || apt-get install -f -y \
+    && rm -rf /var/lib/apt/lists/*
+
+# Установка Node.js и npm
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+    apt-get install -y nodejs
+
+# Установка Yarn через npm
+RUN npm install -g yarn
+
+WORKDIR /app
+COPY Gemfile Gemfile.lock ./
+RUN bundle install ----without development test
+COPY package.json yarn.lock ./
+RUN yarn install
+COPY . .
+ENV RAILS_ENV=development
+CMD ["rails", "server", "-b", "0.0.0.0"]
